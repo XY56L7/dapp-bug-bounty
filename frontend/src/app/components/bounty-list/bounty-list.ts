@@ -36,7 +36,6 @@ export class BountyListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to connection status
     this.web3Service.isConnected$
       .pipe(takeUntil(this.destroy$))
       .subscribe(connected => {
@@ -46,7 +45,6 @@ export class BountyListComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Subscribe to current account
     this.web3Service.currentAccount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(account => {
@@ -69,7 +67,6 @@ export class BountyListComponent implements OnInit, OnDestroy {
       const totalBounties = await this.web3Service.getTotalBounties();
       this.bounties = [];
 
-      // Load all bounties
       for (let i = 1; i <= totalBounties; i++) {
         const bounty = await this.web3Service.getBountyDetails(i);
         if (bounty) {
@@ -77,7 +74,6 @@ export class BountyListComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Sort bounties by creation date (newest first)
       this.bounties.sort((a, b) => b.id - a.id);
     } catch (error) {
       console.error('Error loading bounties:', error);

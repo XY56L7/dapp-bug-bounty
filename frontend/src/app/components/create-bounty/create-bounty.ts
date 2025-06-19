@@ -49,7 +49,7 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
     private router: Router,
     private snackBar: MatSnackBar
   ) {
-    this.minDate.setDate(this.minDate.getDate() + 1); // Minimum date is tomorrow
+    this.minDate.setDate(this.minDate.getDate() + 1);
     
     this.bountyForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(5), Validators.maxLength(100)]],
@@ -61,7 +61,6 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Subscribe to connection status
     this.web3Service.isConnected$
       .pipe(takeUntil(this.destroy$))
       .subscribe(connected => {
@@ -71,7 +70,6 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Subscribe to current account
     this.web3Service.currentAccount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(account => {
@@ -105,7 +103,6 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
           'Close',
           { duration: 5000 }
         );
-        // Reload balance after minting
         setTimeout(() => {
           this.loadTokenBalance();
         }, 2000);
@@ -208,7 +205,6 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
         this.isSubmitting = false;
       }
     } else {
-      // Mark all fields as touched to show validation errors
       Object.keys(this.bountyForm.controls).forEach(key => {
         this.bountyForm.get(key)?.markAsTouched();
       });
@@ -219,7 +215,6 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
-  // Helper methods for template
   getTitleCount(): number {
     return this.bountyForm.get('title')?.value?.length || 0;
   }
@@ -233,34 +228,17 @@ export class CreateBountyComponent implements OnInit, OnDestroy {
   }
 
   parseFloat(value: string): number {
-    return parseFloat(value);
+    return parseFloat(value) || 0;
   }
 
   async debugConnection(): Promise<void> {
-    console.log('=== DEBUG CONNECTION ===');
-    console.log('Current Account:', this.currentAccount);
-    console.log('Is Connected:', this.isConnected);
-    console.log('Token Balance:', this.tokenBalance);
+    console.log('Is connected:', this.isConnected);
+    console.log('Current account:', this.currentAccount);
     
-    try {
-      // Test basic Web3 connection
-      const chainId = await (window as any).ethereum.request({ method: 'eth_chainId' });
-      console.log('Chain ID:', chainId, '(should be 0x539 for Hardhat)');
-      
-      // Test account access
-      const accounts = await (window as any).ethereum.request({ method: 'eth_accounts' });
-      console.log('Accounts:', accounts);
-      
-      // Test contract addresses
-      console.log('Contract Addresses:', {
-        BountyToken: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-        BountyPlatform: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
-      });
-      
-      this.snackBar.open('Debug info logged to console', 'Close', { duration: 3000 });
-    } catch (error) {
-      console.error('Debug error:', error);
-      this.snackBar.open('Debug failed - check console', 'Close', { duration: 3000 });
-    }
+    const balance = await this.web3Service.getTokenBalance(this.currentAccount);
+    console.log('Token balance:', balance);
+    
+    const totalBounties = await this.web3Service.getTotalBounties();
+    console.log('Total bounties:', totalBounties);
   }
 }

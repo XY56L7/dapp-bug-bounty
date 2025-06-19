@@ -11,7 +11,7 @@ export interface Bounty {
   rewardToken: string;
   rewardAmount: string;
   deadline: number;
-  status: number; // 0: Active, 1: Completed, 2: Cancelled
+  status: number; 
   winner: string;
   submissionCount: number;
 }
@@ -34,7 +34,6 @@ export class Web3Service {
   private bountyPlatformContract: ethers.Contract | null = null;
   private bountyTokenContract: ethers.Contract | null = null;
 
-  // Observables for reactive state management
   private _isConnected = new BehaviorSubject<boolean>(false);
   private _currentAccount = new BehaviorSubject<string>('');
   private _networkChainId = new BehaviorSubject<number>(0);
@@ -43,13 +42,11 @@ export class Web3Service {
   public currentAccount$ = this._currentAccount.asObservable();
   public networkChainId$ = this._networkChainId.asObservable();
 
-  // Contract addresses (should be updated after deployment)
   private readonly CONTRACT_ADDRESSES = {
     BOUNTY_PLATFORM: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
     BOUNTY_TOKEN: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
   };
 
-  // Contract ABIs (simplified for this example)
   private readonly BOUNTY_PLATFORM_ABI = [
     'function createBounty(string title, string description, string requirements, address rewardToken, uint256 rewardAmount, uint256 deadline)',
     'function submitSolution(uint256 bountyId, string solutionUrl, string description)',
@@ -81,13 +78,11 @@ export class Web3Service {
     this.checkConnection();
   }
 
-  // Connect to MetaMask wallet
   async connectWallet(): Promise<boolean> {
     try {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         this.provider = new ethers.BrowserProvider((window as any).ethereum);
         
-        // Request account access
         await this.provider.send('eth_requestAccounts', []);
         
         this.signer = await this.provider.getSigner();
@@ -98,10 +93,8 @@ export class Web3Service {
         this._networkChainId.next(Number(network.chainId));
         this._isConnected.next(true);
 
-        // Initialize contracts
         this.initializeContracts();
 
-        // Listen for account changes
         (window as any).ethereum.on('accountsChanged', (accounts: string[]) => {
           if (accounts.length === 0) {
             this.disconnect();
@@ -110,10 +103,9 @@ export class Web3Service {
           }
         });
 
-        // Listen for network changes
         (window as any).ethereum.on('chainChanged', (chainId: string) => {
           this._networkChainId.next(parseInt(chainId, 16));
-          window.location.reload(); // Reload on network change
+          window.location.reload();
         });
 
         return true;
@@ -127,7 +119,6 @@ export class Web3Service {
     }
   }
 
-  // Check if already connected
   private async checkConnection(): Promise<void> {
     try {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
@@ -151,7 +142,6 @@ export class Web3Service {
     }
   }
 
-  // Disconnect wallet
   disconnect(): void {
     this.provider = null;
     this.signer = null;
@@ -162,7 +152,6 @@ export class Web3Service {
     this._isConnected.next(false);
   }
 
-  // Initialize smart contracts
   private initializeContracts(): void {
     if (this.signer) {
       this.bountyPlatformContract = new ethers.Contract(
@@ -179,7 +168,6 @@ export class Web3Service {
     }
   }
 
-  // Create a new bounty
   async createBounty(
     title: string,
     description: string,
@@ -194,15 +182,13 @@ export class Web3Service {
 
       const rewardAmountWei = ethers.parseEther(rewardAmount);
       
-      // First approve the bounty platform to spend tokens
       const approveTx = await this.bountyTokenContract['approve'](
         this.CONTRACT_ADDRESSES.BOUNTY_PLATFORM,
         rewardAmountWei
       );
       await approveTx.wait();
 
-      // Create the bounty
-      const tx = await this.bountyPlatformContract['createBounty'](
+      const createTx = await this.bountyPlatformContract['createBounty'](
         title,
         description,
         requirements,
@@ -211,7 +197,7 @@ export class Web3Service {
         deadline
       );
 
-      const receipt = await tx.wait();
+      const receipt = await createTx.wait();
       return receipt.hash;
     } catch (error) {
       console.error('Error creating bounty:', error);
@@ -219,7 +205,6 @@ export class Web3Service {
     }
   }
 
-  // Submit a solution to a bounty
   async submitSolution(
     bountyId: number,
     solutionUrl: string,
@@ -244,7 +229,6 @@ export class Web3Service {
     }
   }
 
-  // Select winner for a bounty
   async selectWinner(bountyId: number, submissionId: number): Promise<string | null> {
     try {
       if (!this.bountyPlatformContract) {
@@ -260,7 +244,6 @@ export class Web3Service {
     }
   }
 
-  // Get bounty details
   async getBountyDetails(bountyId: number): Promise<Bounty | null> {
     try {
       if (!this.bountyPlatformContract) {
@@ -288,7 +271,6 @@ export class Web3Service {
     }
   }
 
-  // Get submission details
   async getSubmission(bountyId: number, submissionId: number): Promise<Submission | null> {
     try {
       if (!this.bountyPlatformContract) {
@@ -311,41 +293,38 @@ export class Web3Service {
     }
   }
 
-  // Get all bounties count
   async getTotalBounties(): Promise<number> {
     try {
       if (!this.bountyPlatformContract) {
         throw new Error('Contract not initialized');
       }
 
-      const total = await this.bountyPlatformContract['getTotalBounties']();
-      return Number(total);
+      const result = await this.bountyPlatformContract['getTotalBounties']();
+      return Number(result);
     } catch (error) {
       console.error('Error getting total bounties:', error);
       return 0;
     }
   }
 
-  // Get user bounties
   async getUserBounties(address: string): Promise<number[]> {
     try {
       if (!this.bountyPlatformContract) {
         throw new Error('Contract not initialized');
       }
 
-      const bountyIds = await this.bountyPlatformContract['getUserBounties'](address);
-      return bountyIds.map((id: any) => Number(id));
+      const result = await this.bountyPlatformContract['getUserBounties'](address);
+      return result.map((id: any) => Number(id));
     } catch (error) {
       console.error('Error getting user bounties:', error);
       return [];
     }
   }
 
-  // Get token balance
   async getTokenBalance(address: string): Promise<string> {
     try {
       if (!this.bountyTokenContract) {
-        throw new Error('Token contract not initialized');
+        throw new Error('Contract not initialized');
       }
 
       const balance = await this.bountyTokenContract['balanceOf'](address);
@@ -356,11 +335,10 @@ export class Web3Service {
     }
   }
 
-  // Mint tokens (for testing purposes - only contract owner can call this)
   async mintTokens(to: string, amount: string): Promise<string | null> {
     try {
       if (!this.bountyTokenContract) {
-        throw new Error('Token contract not initialized');
+        throw new Error('Contract not initialized');
       }
 
       const amountWei = ethers.parseEther(amount);
@@ -373,10 +351,9 @@ export class Web3Service {
     }
   }
 
-  // Update contract addresses (call this after deployment)
   updateContractAddresses(bountyPlatform: string, bountyToken: string): void {
-    (this.CONTRACT_ADDRESSES.BOUNTY_PLATFORM as any) = bountyPlatform;
-    (this.CONTRACT_ADDRESSES.BOUNTY_TOKEN as any) = bountyToken;
+    (this.CONTRACT_ADDRESSES as any).BOUNTY_PLATFORM = bountyPlatform;
+    (this.CONTRACT_ADDRESSES as any).BOUNTY_TOKEN = bountyToken;
     
     if (this.signer) {
       this.initializeContracts();

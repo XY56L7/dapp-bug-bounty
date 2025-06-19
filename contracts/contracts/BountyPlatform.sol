@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -46,11 +45,9 @@ contract BountyPlatform is ReentrancyGuard, Ownable {
     mapping(address => uint256[]) public userBounties;
     mapping(address => uint256[]) public userSubmissions;
 
-    // Platform fee (in basis points, e.g., 250 = 2.5%)
     uint256 public platformFee = 250;
     address public feeRecipient;
 
-    // Events
     event BountyCreated(
         uint256 indexed bountyId,
         address indexed creator,
@@ -125,7 +122,6 @@ contract BountyPlatform is ReentrancyGuard, Ownable {
 
         userBounties[msg.sender].push(newBountyId);
 
-        // Transfer reward tokens to contract
         IERC20(_rewardToken).safeTransferFrom(msg.sender, address(this), _rewardAmount);
 
         emit BountyCreated(newBountyId, msg.sender, _title, _rewardToken, _rewardAmount, _deadline);
@@ -174,11 +170,9 @@ contract BountyPlatform is ReentrancyGuard, Ownable {
         bounty.winner = winningSubmission.developer;
         winningSubmission.isWinner = true;
 
-        // Calculate platform fee
         uint256 fee = (bounty.rewardAmount * platformFee) / 10000;
         uint256 developerReward = bounty.rewardAmount - fee;
 
-        // Transfer rewards
         IERC20(bounty.rewardToken).safeTransfer(winningSubmission.developer, developerReward);
         if (fee > 0) {
             IERC20(bounty.rewardToken).safeTransfer(feeRecipient, fee);
@@ -197,7 +191,6 @@ contract BountyPlatform is ReentrancyGuard, Ownable {
 
         bounty.status = BountyStatus.Cancelled;
 
-        // Refund the reward to creator
         IERC20(bounty.rewardToken).safeTransfer(bounty.creator, bounty.rewardAmount);
 
         emit BountyCancelled(_bountyId);
@@ -276,7 +269,7 @@ contract BountyPlatform is ReentrancyGuard, Ownable {
     }
 
     function setPlatformFee(uint256 _newFee) external onlyOwner {
-        require(_newFee <= 1000, "Fee cannot exceed 10%"); // Max 10%
+        require(_newFee <= 1000, "Fee cannot exceed 10%");
         platformFee = _newFee;
     }
 

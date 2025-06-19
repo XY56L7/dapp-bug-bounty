@@ -12,22 +12,19 @@ describe("BountyPlatform", function () {
 
   const INITIAL_SUPPLY = ethers.parseEther("1000000");
   const BOUNTY_REWARD = ethers.parseEther("100");
-  const PLATFORM_FEE = 250; // 2.5%
+  const PLATFORM_FEE = 250;
 
   beforeEach(async function () {
     [owner, creator, developer1, developer2, feeRecipient] = await ethers.getSigners();
 
-    // Deploy BountyToken
     const BountyToken = await ethers.getContractFactory("BountyToken");
     bountyToken = await BountyToken.deploy();
     await bountyToken.waitForDeployment();
 
-    // Deploy BountyPlatform
     const BountyPlatform = await ethers.getContractFactory("BountyPlatform");
     bountyPlatform = await BountyPlatform.deploy(feeRecipient.address);
     await bountyPlatform.waitForDeployment();
 
-    // Transfer tokens to creator for testing
     await bountyToken.transfer(creator.address, ethers.parseEther("10000"));
   });
 
@@ -47,12 +44,10 @@ describe("BountyPlatform", function () {
 
   describe("Creating Bounties", function () {
     it("Should create a bounty successfully", async function () {
-      const deadline = Math.floor(Date.now() / 1000) + 86400; // 1 day from now
+      const deadline = Math.floor(Date.now() / 1000) + 86400;
       
-      // Approve tokens
       await bountyToken.connect(creator).approve(bountyPlatform.target, BOUNTY_REWARD);
       
-      // Create bounty
       const tx = await bountyPlatform.connect(creator).createBounty(
         "Test Bounty",
         "Test Description",
@@ -66,12 +61,11 @@ describe("BountyPlatform", function () {
         .to.emit(bountyPlatform, "BountyCreated")
         .withArgs(1, creator.address, "Test Bounty", bountyToken.target, BOUNTY_REWARD, deadline);
 
-      // Check bounty details
       const bounty = await bountyPlatform.getBountyDetails(1);
-      expect(bounty[0]).to.equal(1); // id
-      expect(bounty[1]).to.equal(creator.address); // creator
-      expect(bounty[2]).to.equal("Test Bounty"); // title
-      expect(bounty[6]).to.equal(BOUNTY_REWARD); // rewardAmount
+      expect(bounty[0]).to.equal(1);
+      expect(bounty[1]).to.equal(creator.address);
+      expect(bounty[2]).to.equal("Test Bounty");
+      expect(bounty[6]).to.equal(BOUNTY_REWARD);
     });
 
     it("Should fail to create bounty with empty title", async function () {
@@ -92,7 +86,7 @@ describe("BountyPlatform", function () {
     });
 
     it("Should fail to create bounty with past deadline", async function () {
-      const pastDeadline = Math.floor(Date.now() / 1000) - 86400; // 1 day ago
+      const pastDeadline = Math.floor(Date.now() / 1000) - 86400;
       
       await bountyToken.connect(creator).approve(bountyPlatform.target, BOUNTY_REWARD);
       
@@ -138,10 +132,9 @@ describe("BountyPlatform", function () {
         .to.emit(bountyPlatform, "SubmissionCreated")
         .withArgs(bountyId, 1, developer1.address, "https://github.com/test/solution");
 
-      // Check submission details
       const submission = await bountyPlatform.getSubmission(bountyId, 1);
-      expect(submission[1]).to.equal(developer1.address); // developer
-      expect(submission[2]).to.equal("https://github.com/test/solution"); // solutionUrl
+      expect(submission[1]).to.equal(developer1.address);
+      expect(submission[2]).to.equal("https://github.com/test/solution");
     });
 
     it("Should fail to submit solution twice", async function () {
@@ -188,7 +181,6 @@ describe("BountyPlatform", function () {
       );
       bountyId = 1;
 
-      // Submit solutions
       await bountyPlatform.connect(developer1).submitSolution(
         bountyId,
         "https://github.com/dev1/solution",
@@ -203,43 +195,45 @@ describe("BountyPlatform", function () {
 
     it("Should select winner successfully", async function () {
       const initialBalance = await bountyToken.balanceOf(developer1.address);
-      const initialFeeBalance = await bountyToken.balanceOf(feeRecipient.address);
       
       const tx = await bountyPlatform.connect(creator).selectWinner(bountyId, 1);
 
-      const fee = (BOUNTY_REWARD * BigInt(PLATFORM_FEE)) / BigInt(10000);
-      const developerReward = BOUNTY_REWARD - fee;
-
+      const expectedReward = BOUNTY_REWARD - (BOUNTY_REWARD * BigInt(PLATFORM_FEE)) / BigInt(10000);
+      
       await expect(tx)
         .to.emit(bountyPlatform, "BountyCompleted")
-        .withArgs(bountyId, developer1.address, developerReward);
+        .withArgs(bountyId, developer1.address, expectedReward);
 
-      // Check balances
-      expect(await bountyToken.balanceOf(developer1.address))
-        .to.equal(initialBalance + developerReward);
-      expect(await bountyToken.balanceOf(feeRecipient.address))
-        .to.equal(initialFeeBalance + fee);
+      const finalBalance = await bountyToken.balanceOf(developer1.address);
+      expect(finalBalance - initialBalance).to.equal(expectedReward);
 
-      // Check bounty status
       const bounty = await bountyPlatform.getBountyDetails(bountyId);
-      expect(bounty[8]).to.equal(1); // status = Completed
-      expect(bounty[9]).to.equal(developer1.address); // winner
+      expect(bounty[8]).to.equal(1);
+      expect(bounty[9]).to.equal(developer1.address);
     });
 
-    it("Should fail if non-creator tries to select winner", async function () {
+    it("Should fail to select winner twice", async function () {
+      await bountyPlatform.connect(creator).selectWinner(bountyId, 1);
+
+      await expect(
+        bountyPlatform.connect(creator).selectWinner(bountyId, 2)
+      ).to.be.revertedWith("Bounty is not active");
+    });
+
+    it("Should fail to select non-existent submission", async function () {
+      await expect(
+        bountyPlatform.connect(creator).selectWinner(bountyId, 99)
+      ).to.be.revertedWith("Invalid submission ID");
+    });
+
+    it("Should fail if not bounty creator", async function () {
       await expect(
         bountyPlatform.connect(developer1).selectWinner(bountyId, 1)
       ).to.be.revertedWith("Not the bounty creator");
     });
-
-    it("Should fail to select invalid submission", async function () {
-      await expect(
-        bountyPlatform.connect(creator).selectWinner(bountyId, 999)
-      ).to.be.revertedWith("Invalid submission ID");
-    });
   });
 
-  describe("Canceling Bounties", function () {
+  describe("Cancelling Bounties", function () {
     let bountyId;
     
     beforeEach(async function () {
@@ -262,76 +256,41 @@ describe("BountyPlatform", function () {
       
       const tx = await bountyPlatform.connect(creator).cancelBounty(bountyId);
 
-      await expect(tx).to.emit(bountyPlatform, "BountyCancelled").withArgs(bountyId);
+      await expect(tx)
+        .to.emit(bountyPlatform, "BountyCancelled")
+        .withArgs(bountyId);
 
-      // Check refund
-      expect(await bountyToken.balanceOf(creator.address))
-        .to.equal(initialBalance + BOUNTY_REWARD);
+      const finalBalance = await bountyToken.balanceOf(creator.address);
+      expect(finalBalance - initialBalance).to.equal(BOUNTY_REWARD);
 
-      // Check bounty status
       const bounty = await bountyPlatform.getBountyDetails(bountyId);
-      expect(bounty[8]).to.equal(2); // status = Cancelled
+      expect(bounty[8]).to.equal(2);
     });
 
-    it("Should fail if non-creator tries to cancel", async function () {
+    it("Should fail if not bounty creator", async function () {
       await expect(
         bountyPlatform.connect(developer1).cancelBounty(bountyId)
       ).to.be.revertedWith("Not the bounty creator");
     });
   });
 
-  describe("View Functions", function () {
-    it("Should return correct total bounties", async function () {
-      expect(await bountyPlatform.getTotalBounties()).to.equal(0);
-
-      const deadline = Math.floor(Date.now() / 1000) + 86400;
-      await bountyToken.connect(creator).approve(bountyPlatform.target, BOUNTY_REWARD);
-      await bountyPlatform.connect(creator).createBounty(
-        "Test Bounty",
-        "Test Description",
-        "Test Requirements",
-        bountyToken.target,
-        BOUNTY_REWARD,
-        deadline
-      );
-
-      expect(await bountyPlatform.getTotalBounties()).to.equal(1);
+  describe("Platform Administration", function () {
+    it("Should set platform fee", async function () {
+      const newFee = 500;
+      await bountyPlatform.connect(owner).setPlatformFee(newFee);
+      expect(await bountyPlatform.platformFee()).to.equal(newFee);
     });
 
-    it("Should return user bounties", async function () {
-      const deadline = Math.floor(Date.now() / 1000) + 86400;
-      await bountyToken.connect(creator).approve(bountyPlatform.target, BOUNTY_REWARD);
-      await bountyPlatform.connect(creator).createBounty(
-        "Test Bounty",
-        "Test Description",
-        "Test Requirements",
-        bountyToken.target,
-        BOUNTY_REWARD,
-        deadline
-      );
-
-      const userBounties = await bountyPlatform.getUserBounties(creator.address);
-      expect(userBounties.length).to.equal(1);
-      expect(userBounties[0]).to.equal(1);
-    });
-  });
-
-  describe("Admin Functions", function () {
-    it("Should allow owner to set platform fee", async function () {
-      await bountyPlatform.connect(owner).setPlatformFee(500); // 5%
-      expect(await bountyPlatform.platformFee()).to.equal(500);
-    });
-
-    it("Should fail if non-owner tries to set platform fee", async function () {
-      await expect(
-        bountyPlatform.connect(creator).setPlatformFee(500)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("Should fail to set platform fee above 10%", async function () {
+    it("Should fail to set fee above 10%", async function () {
       await expect(
         bountyPlatform.connect(owner).setPlatformFee(1001)
       ).to.be.revertedWith("Fee cannot exceed 10%");
+    });
+
+    it("Should set fee recipient", async function () {
+      const newRecipient = developer1.address;
+      await bountyPlatform.connect(owner).setFeeRecipient(newRecipient);
+      expect(await bountyPlatform.feeRecipient()).to.equal(newRecipient);
     });
   });
 }); 

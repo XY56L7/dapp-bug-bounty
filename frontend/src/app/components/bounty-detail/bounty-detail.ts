@@ -63,7 +63,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Get bounty ID from route
     this.route.params.subscribe(params => {
       this.bountyId = +params['id'];
       if (this.bountyId) {
@@ -71,7 +70,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Subscribe to connection status
     this.web3Service.isConnected$
       .pipe(takeUntil(this.destroy$))
       .subscribe(connected => {
@@ -81,7 +79,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Subscribe to current account
     this.web3Service.currentAccount$
       .pipe(takeUntil(this.destroy$))
       .subscribe(account => {
@@ -107,11 +104,9 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
     try {
       this.loading = true;
       
-      // Load bounty details
       this.bounty = await this.web3Service.getBountyDetails(this.bountyId);
       
       if (this.bounty) {
-        // Load submissions
         this.submissions = [];
         for (let i = 1; i <= this.bounty.submissionCount; i++) {
           const submission = await this.web3Service.getSubmission(this.bountyId, i);
@@ -120,7 +115,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
           }
         }
         
-        // Sort submissions by timestamp (newest first)
         this.submissions.sort((a, b) => b.timestamp - a.timestamp);
       }
     } catch (error) {
@@ -150,7 +144,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
             { duration: 5000 }
           );
           
-          // Reset form and reload bounty details
           this.submissionForm.reset();
           await this.loadBountyDetails();
         } else {
@@ -167,7 +160,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
         this.isSubmitting = false;
       }
     } else {
-      // Mark all fields as touched to show validation errors
       Object.keys(this.submissionForm.controls).forEach(key => {
         this.submissionForm.get(key)?.markAsTouched();
       });
@@ -189,7 +181,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
           { duration: 5000 }
         );
         
-        // Reload bounty details
         await this.loadBountyDetails();
       } else {
         throw new Error('Transaction failed');
@@ -206,7 +197,6 @@ export class BountyDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Helper methods
   getStatusText(status: number): string {
     switch (status) {
       case 0: return 'Active';
