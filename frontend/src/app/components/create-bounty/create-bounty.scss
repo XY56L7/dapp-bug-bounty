@@ -1,0 +1,262 @@
+.create-bounty-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+
+  .header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 32px;
+    position: relative;
+
+    .back-button {
+      margin-right: 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 400;
+      color: #1976d2;
+      margin: 0;
+      flex: 1;
+    }
+
+    .subtitle {
+      position: absolute;
+      top: 100%;
+      left: 56px; // Account for back button
+      margin: 8px 0 0 0;
+      color: #666;
+      font-size: 1rem;
+    }
+  }
+
+  .wallet-info {
+    margin-bottom: 24px;
+
+    .info-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px;
+
+      .wallet-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+
+        .detail-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 500;
+
+          mat-icon {
+            font-size: 1.2rem;
+            width: 1.2rem;
+            height: 1.2rem;
+          }
+        }
+      }
+    }
+  }
+
+  .form-card {
+    margin-bottom: 24px;
+
+    .bounty-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+
+      .full-width {
+        width: 100%;
+      }
+
+      .reward-field {
+        max-width: 300px;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: flex-end;
+        align-items: center;
+        margin-top: 24px;
+        padding-top: 24px;
+        border-top: 1px solid #e0e0e0;
+
+        button {
+          min-width: 120px;
+          
+          &[color="primary"] {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+        }
+      }
+    }
+  }
+
+  .tips-card {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+
+    mat-card-header {
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #495057;
+
+        mat-icon {
+          color: #ffc107;
+        }
+      }
+    }
+
+    .tips-list {
+      margin: 0;
+      padding-left: 20px;
+      
+      li {
+        margin-bottom: 8px;
+        color: #6c757d;
+        line-height: 1.5;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+// Form field customizations
+.mat-mdc-form-field {
+  .mat-mdc-form-field-error {
+    font-size: 0.75rem;
+  }
+
+  .mat-mdc-form-field-hint {
+    font-size: 0.75rem;
+  }
+
+  &.mat-form-field-invalid {
+    .mat-mdc-text-field-wrapper {
+      .mat-mdc-form-field-focus-overlay {
+        background-color: rgba(244, 67, 54, 0.04);
+      }
+    }
+  }
+}
+
+// Textarea styling
+textarea.mat-mdc-input-element {
+  resize: vertical;
+  min-height: 60px;
+}
+
+// Spinner in button styling
+button mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+
+  ::ng-deep .mat-mdc-progress-spinner circle {
+    stroke: currentColor;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .create-bounty-container {
+    padding: 16px;
+
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+
+      .back-button {
+        align-self: flex-start;
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin-left: 0;
+      }
+
+      .subtitle {
+        position: static;
+        left: auto;
+        margin-top: 4px;
+      }
+    }
+
+    .wallet-info {
+      .info-card {
+        .wallet-details {
+          flex-direction: column;
+          align-items: flex-start;
+
+          .detail-item {
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    .form-card {
+      .bounty-form {
+        .reward-field {
+          max-width: 100%;
+        }
+
+        .form-actions {
+          flex-direction: column-reverse;
+
+          button {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Animation for form submission
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+button[type="submit"]:not(:disabled):active {
+  animation: pulse 0.2s ease-in-out;
+}
+
+// Custom error styling
+.mat-mdc-form-field-error {
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+// Datepicker customization
+.mat-datepicker-toggle {
+  color: #666;
+}
+
+// Loading state for submit button
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

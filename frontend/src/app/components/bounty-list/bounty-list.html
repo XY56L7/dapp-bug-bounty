@@ -1,0 +1,134 @@
+<div class="bounty-list-container">
+  <div class="header">
+    <h1>Bounty Platform</h1>
+    <p class="subtitle">Discover and complete bounties to earn rewards</p>
+    
+    <div class="header-actions" *ngIf="isConnected">
+      <button mat-raised-button color="primary" (click)="createBounty()">
+        <mat-icon>add</mat-icon>
+        Create Bounty
+      </button>
+      <button mat-stroked-button (click)="loadBounties()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Connect Wallet Section -->
+  <div class="connect-section" *ngIf="!isConnected">
+    <mat-card class="connect-card">
+      <mat-card-header>
+        <mat-card-title>Connect Your Wallet</mat-card-title>
+        <mat-card-subtitle>Connect to MetaMask to start using the bounty platform</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>You need to connect your Web3 wallet to view and interact with bounties.</p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button color="primary" (click)="connectWallet()">
+          Connect Wallet
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-section" *ngIf="isConnected && loading">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading bounties...</p>
+  </div>
+
+  <!-- Bounties Content -->
+  <div class="bounties-content" *ngIf="isConnected && !loading">
+    
+    <!-- Stats Section -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <h3>{{ getActiveBounties().length }}</h3>
+        <p>Active Bounties</p>
+      </div>
+      <div class="stat-card">
+        <h3>{{ getCompletedBounties().length }}</h3>
+        <p>Completed</p>
+      </div>
+      <div class="stat-card">
+        <h3>{{ bounties.length }}</h3>
+        <p>Total Bounties</p>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="bounties.length === 0">
+      <mat-icon class="empty-icon">work_outline</mat-icon>
+      <h2>No bounties found</h2>
+      <p>Be the first to create a bounty on this platform!</p>
+      <button mat-raised-button color="primary" (click)="createBounty()">
+        Create First Bounty
+      </button>
+    </div>
+
+    <!-- Bounties Grid -->
+    <div class="bounties-grid" *ngIf="bounties.length > 0">
+      <mat-card 
+        class="bounty-card" 
+        *ngFor="let bounty of bounties; trackBy: trackByBountyId"
+        [class]="'status-' + bounty.status"
+        (click)="viewBounty(bounty.id)">
+        
+        <mat-card-header>
+          <mat-card-title>{{ bounty.title }}</mat-card-title>
+          <mat-card-subtitle>
+            by {{ formatAddress(bounty.creator) }}
+          </mat-card-subtitle>
+          <div class="header-chips">
+            <mat-chip 
+              [color]="getStatusColor(bounty.status)"
+              selected>
+              {{ getStatusText(bounty.status) }}
+            </mat-chip>
+            <mat-chip 
+              *ngIf="isExpired(bounty.deadline) && bounty.status === 0"
+              color="warn"
+              selected>
+              Expired
+            </mat-chip>
+          </div>
+        </mat-card-header>
+
+        <mat-card-content>
+          <p class="description">{{ bounty.description | slice:0:150 }}{{ bounty.description.length > 150 ? '...' : '' }}</p>
+          
+          <div class="bounty-details">
+            <div class="detail-item">
+              <mat-icon>account_balance_wallet</mat-icon>
+              <span>{{ bounty.rewardAmount }} BOUNTY</span>
+            </div>
+            <div class="detail-item">
+              <mat-icon>schedule</mat-icon>
+              <span>{{ formatDate(bounty.deadline) }}</span>
+            </div>
+            <div class="detail-item">
+              <mat-icon>assignment</mat-icon>
+              <span>{{ bounty.submissionCount }} submissions</span>
+            </div>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-button color="primary">
+            View Details
+            <mat-icon>arrow_forward</mat-icon>
+          </button>
+          <button 
+            mat-stroked-button 
+            color="accent"
+            *ngIf="isActiveBounty(bounty)"
+            (click)="$event.stopPropagation(); viewBounty(bounty.id)">
+            Submit Solution
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>

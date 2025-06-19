@@ -1,0 +1,176 @@
+<div class="create-bounty-container">
+  <div class="header">
+    <button mat-icon-button (click)="onCancel()" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Create New Bounty</h1>
+    <p class="subtitle">Post a task and reward developers with tokens</p>
+  </div>
+
+  <!-- Wallet Info -->
+  <div class="wallet-info" *ngIf="isConnected">
+    <mat-card class="info-card">
+      <div class="wallet-details">
+        <div class="detail-item">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <span>{{ currentAccount.slice(0, 6) }}...{{ currentAccount.slice(-4) }}</span>
+        </div>
+        <div class="detail-item">
+          <mat-icon>monetization_on</mat-icon>
+          <span>{{ tokenBalance }} BOUNTY tokens</span>
+        </div>
+        <div class="detail-item" *ngIf="parseFloat(tokenBalance) < 10">
+          <button mat-stroked-button color="accent" (click)="mintTestTokens()" [disabled]="isMinting">
+            <mat-spinner diameter="16" *ngIf="isMinting"></mat-spinner>
+            <mat-icon *ngIf="!isMinting">add_circle</mat-icon>
+            <span *ngIf="!isMinting">Get Test Tokens</span>
+            <span *ngIf="isMinting">Minting...</span>
+          </button>
+        </div>
+        <div class="detail-item">
+          <button mat-stroked-button color="warn" (click)="debugConnection()">
+            <mat-icon>bug_report</mat-icon>
+            Debug Connection
+          </button>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Create Bounty Form -->
+  <mat-card class="form-card">
+    <mat-card-header>
+      <mat-card-title>Bounty Details</mat-card-title>
+      <mat-card-subtitle>Fill in the information about your bounty</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="bountyForm" (ngSubmit)="onSubmit()" class="bounty-form">
+        
+        <!-- Title -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Bounty Title</mat-label>
+          <input 
+            matInput 
+            formControlName="title" 
+            placeholder="Enter a clear and descriptive title"
+            maxlength="100">
+          <mat-hint align="end">{{ getTitleCount() }}/100</mat-hint>
+          <mat-error *ngIf="isFieldInvalid('title')">
+            {{ getFieldError('title') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Description -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <textarea 
+            matInput 
+            formControlName="description" 
+            placeholder="Provide a detailed description of the task, expected deliverables, and any specific requirements"
+            rows="4"
+            maxlength="2000">
+          </textarea>
+          <mat-hint align="end">{{ getDescriptionCount() }}/2000</mat-hint>
+          <mat-error *ngIf="isFieldInvalid('description')">
+            {{ getFieldError('description') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Requirements -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Technical Requirements</mat-label>
+          <textarea 
+            matInput 
+            formControlName="requirements" 
+            placeholder="List specific technical requirements, technologies to use, acceptance criteria, etc."
+            rows="3"
+            maxlength="1000">
+          </textarea>
+          <mat-hint align="end">{{ getRequirementsCount() }}/1000</mat-hint>
+          <mat-error *ngIf="isFieldInvalid('requirements')">
+            {{ getFieldError('requirements') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Reward Amount -->
+        <mat-form-field appearance="outline" class="reward-field">
+          <mat-label>Reward Amount</mat-label>
+          <input 
+            matInput 
+            type="number" 
+            formControlName="rewardAmount" 
+            placeholder="0.0"
+            min="0.01"
+            max="10000"
+            step="0.01">
+          <span matTextSuffix>BOUNTY</span>
+          <mat-hint *ngIf="!hasInsufficientBalance()">Available: {{ tokenBalance }} BOUNTY</mat-hint>
+          <mat-error *ngIf="hasInsufficientBalance()">
+            Insufficient balance. You have {{ tokenBalance }} BOUNTY tokens.
+          </mat-error>
+          <mat-error *ngIf="isFieldInvalid('rewardAmount') && !hasInsufficientBalance()">
+            {{ getFieldError('rewardAmount') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Deadline -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Deadline</mat-label>
+          <input 
+            matInput 
+            [matDatepicker]="deadlinePicker" 
+            formControlName="deadline"
+            [min]="minDate"
+            readonly>
+          <mat-datepicker-toggle matIconSuffix [for]="deadlinePicker"></mat-datepicker-toggle>
+          <mat-datepicker #deadlinePicker></mat-datepicker>
+          <mat-hint>Select the deadline for submissions</mat-hint>
+          <mat-error *ngIf="isFieldInvalid('deadline')">
+            {{ getFieldError('deadline') }}
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button 
+            mat-stroked-button 
+            type="button" 
+            (click)="onCancel()"
+            [disabled]="isSubmitting">
+            Cancel
+          </button>
+          
+          <button 
+            mat-raised-button 
+            color="primary" 
+            type="submit"
+            [disabled]="bountyForm.invalid || isSubmitting">
+            <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
+            <span *ngIf="!isSubmitting">Create Bounty</span>
+            <span *ngIf="isSubmitting">Creating...</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tips Section -->
+  <mat-card class="tips-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>lightbulb</mat-icon>
+        Tips for Creating Great Bounties
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <ul class="tips-list">
+        <li>Be specific about your requirements and expected deliverables</li>
+        <li>Set a reasonable deadline that gives developers enough time</li>
+        <li>Offer competitive rewards to attract quality submissions</li>
+        <li>Include examples or reference materials when possible</li>
+        <li>Respond promptly to questions from potential contributors</li>
+      </ul>
+    </mat-card-content>
+  </mat-card>
+</div>

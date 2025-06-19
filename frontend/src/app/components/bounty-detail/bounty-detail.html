@@ -1,0 +1,290 @@
+<div class="bounty-detail-container">
+  <!-- Header -->
+  <div class="header">
+    <button mat-icon-button (click)="goBack()" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <h1>Bounty Details</h1>
+  </div>
+
+  <!-- Connect Wallet Section -->
+  <div class="connect-section" *ngIf="!isConnected">
+    <mat-card class="connect-card">
+      <mat-card-header>
+        <mat-card-title>Connect Your Wallet</mat-card-title>
+        <mat-card-subtitle>Connect to view bounty details and submit solutions</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <p>You need to connect your Web3 wallet to interact with bounties.</p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button color="primary" (click)="connectWallet()">
+          Connect Wallet
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-section" *ngIf="isConnected && loading">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading bounty details...</p>
+  </div>
+
+  <!-- Bounty Not Found -->
+  <div class="not-found-section" *ngIf="isConnected && !loading && !bounty">
+    <mat-card class="not-found-card">
+      <mat-card-content>
+        <mat-icon class="not-found-icon">error_outline</mat-icon>
+        <h2>Bounty Not Found</h2>
+        <p>The bounty you're looking for doesn't exist or has been removed.</p>
+        <button mat-raised-button color="primary" (click)="goBack()">
+          Back to Bounties
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Bounty Details -->
+  <div class="bounty-content" *ngIf="isConnected && !loading && bounty">
+    
+    <!-- Main Bounty Info -->
+    <mat-card class="bounty-info-card">
+      <mat-card-header>
+        <mat-card-title>{{ bounty.title }}</mat-card-title>
+        <mat-card-subtitle>
+          Created by {{ formatAddress(bounty.creator) }}
+        </mat-card-subtitle>
+        <div class="header-chips">
+          <mat-chip 
+            [color]="getStatusColor(bounty.status)"
+            selected>
+            {{ getStatusText(bounty.status) }}
+          </mat-chip>
+          <mat-chip 
+            *ngIf="isExpired(bounty.deadline) && bounty.status === 0"
+            color="warn"
+            selected>
+            Expired
+          </mat-chip>
+          <mat-chip 
+            *ngIf="bounty.winner"
+            color="accent"
+            selected>
+            Winner: {{ formatAddress(bounty.winner) }}
+          </mat-chip>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="bounty-details">
+          <div class="detail-section">
+            <h3>About this Bounty</h3>
+            <p class="description">{{ bounty.description }}</p>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="detail-section">
+            <h3>Requirements</h3>
+            <p class="requirements">{{ bounty.requirements }}</p>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <mat-icon>account_balance_wallet</mat-icon>
+              <div>
+                <strong>Reward</strong>
+                <span>{{ bounty.rewardAmount }} BOUNTY</span>
+              </div>
+            </div>
+            <div class="detail-item">
+              <mat-icon>schedule</mat-icon>
+              <div>
+                <strong>Deadline</strong>
+                <span>{{ formatDate(bounty.deadline) }}</span>
+              </div>
+            </div>
+            <div class="detail-item">
+              <mat-icon>assignment</mat-icon>
+              <div>
+                <strong>Submissions</strong>
+                <span>{{ bounty.submissionCount }} total</span>
+              </div>
+            </div>
+            <div class="detail-item">
+              <mat-icon>account_circle</mat-icon>
+              <div>
+                <strong>Creator</strong>
+                <span>{{ formatAddress(bounty.creator) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Submit Solution Form -->
+    <mat-card class="submission-form-card" *ngIf="canSubmitSolution() && !hasAlreadySubmitted()">
+      <mat-card-header>
+        <mat-card-title>Submit Your Solution</mat-card-title>
+        <mat-card-subtitle>Provide your solution link and description</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="submissionForm" (ngSubmit)="onSubmitSolution()" class="submission-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Solution URL</mat-label>
+            <input 
+              matInput 
+              formControlName="solutionUrl" 
+              placeholder="https://github.com/yourusername/your-solution"
+              type="url">
+            <mat-hint>Link to your solution (GitHub, demo, documentation, etc.)</mat-hint>
+            <mat-error *ngIf="isFieldInvalid('solutionUrl')">
+              {{ getFieldError('solutionUrl') }}
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea 
+              matInput 
+              formControlName="description" 
+              placeholder="Describe your solution approach and key features"
+              rows="4"
+              maxlength="500">
+            </textarea>
+            <mat-hint align="end">{{ getDescriptionCount() }}/500</mat-hint>
+            <mat-error *ngIf="isFieldInvalid('description')">
+              {{ getFieldError('description') }}
+            </mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit"
+              [disabled]="submissionForm.invalid || isSubmitting">
+              <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
+              <span *ngIf="!isSubmitting">Submit Solution</span>
+              <span *ngIf="isSubmitting">Submitting...</span>
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Already Submitted Message -->
+    <mat-card class="already-submitted-card" *ngIf="canSubmitSolution() && hasAlreadySubmitted()">
+      <mat-card-content>
+        <mat-icon class="success-icon">check_circle</mat-icon>
+        <h3>Solution Already Submitted</h3>
+        <p>You have already submitted a solution for this bounty. Check your submission below.</p>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Cannot Submit Message -->
+    <mat-card class="cannot-submit-card" *ngIf="!canSubmitSolution() && bounty.status === 0 && currentAccount">
+      <mat-card-content>
+        <mat-icon class="info-icon">info</mat-icon>
+        <h3>
+          <span *ngIf="currentAccount.toLowerCase() === bounty.creator.toLowerCase()">You are the creator of this bounty</span>
+          <span *ngIf="isExpired(bounty.deadline)">This bounty has expired</span>
+          <span *ngIf="bounty.status !== 0">This bounty is no longer active</span>
+        </h3>
+        <p *ngIf="currentAccount.toLowerCase() === bounty.creator.toLowerCase()">
+          As the bounty creator, you can select a winner from the submissions below.
+        </p>
+        <p *ngIf="isExpired(bounty.deadline)">
+          The deadline for submissions has passed.
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Submissions List -->
+    <mat-card class="submissions-card" *ngIf="submissions.length > 0">
+      <mat-card-header>
+        <mat-card-title>Submissions ({{ submissions.length }})</mat-card-title>
+        <mat-card-subtitle>Solutions submitted by developers</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <mat-accordion>
+          <mat-expansion-panel 
+            *ngFor="let submission of submissions; trackBy: trackBySubmissionId"
+            [class]="submission.isWinner ? 'winner-panel' : ''">
+            
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <div class="submission-header">
+                  <span>{{ formatAddress(submission.developer) }}</span>
+                  <mat-chip 
+                    *ngIf="submission.isWinner"
+                    color="accent"
+                    selected
+                    class="winner-chip">
+                    <mat-icon>emoji_events</mat-icon>
+                    Winner
+                  </mat-chip>
+                </div>
+              </mat-panel-title>
+              <mat-panel-description>
+                Submitted {{ formatDate(submission.timestamp) }}
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <div class="submission-content">
+              <div class="submission-info">
+                <div class="info-item">
+                  <strong>Solution URL:</strong>
+                  <a [href]="submission.solutionUrl" target="_blank" rel="noopener noreferrer">
+                    {{ submission.solutionUrl }}
+                    <mat-icon class="external-link">open_in_new</mat-icon>
+                  </a>
+                </div>
+                <div class="info-item">
+                  <strong>Description:</strong>
+                  <p>{{ submission.description }}</p>
+                </div>
+                <div class="info-item">
+                  <strong>Developer:</strong>
+                  <span>{{ submission.developer }}</span>
+                </div>
+                <div class="info-item">
+                  <strong>Submitted:</strong>
+                  <span>{{ formatDate(submission.timestamp) }}</span>
+                </div>
+              </div>
+
+              <div class="submission-actions" *ngIf="canSelectWinner() && !submission.isWinner">
+                <button 
+                  mat-raised-button 
+                  color="primary"
+                  (click)="selectWinner(submission.id)"
+                  [disabled]="isSelectingWinner">
+                  <mat-spinner diameter="20" *ngIf="isSelectingWinner"></mat-spinner>
+                  <span *ngIf="!isSelectingWinner">Select as Winner</span>
+                  <span *ngIf="isSelectingWinner">Selecting...</span>
+                </button>
+              </div>
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- No Submissions -->
+    <mat-card class="no-submissions-card" *ngIf="submissions.length === 0">
+      <mat-card-content>
+        <mat-icon class="empty-icon">assignment_outlined</mat-icon>
+        <h3>No Submissions Yet</h3>
+        <p>Be the first to submit a solution for this bounty!</p>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+</div>
